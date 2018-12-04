@@ -20,7 +20,7 @@ Dynogels is a [DynamoDB][5] data mapper for [node.js][1]. This project has been 
 
 ## Installation
 
-    npm install dynogels
+    yarn add @digitalrelab/dynogels
 
 ## Getting Started
 First, you need to configure the [AWS SDK][2] with your credentials.
