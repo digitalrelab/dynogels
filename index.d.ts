@@ -89,6 +89,7 @@ export interface Model {
     after(action: LifeCycleAction, listner: (item: Item) => void): void;
     before(action: LifeCycleAction, listner: (data: any, next: (err: Error | null, data: any) => void) => void): void;
     config(config: ModelConfig): { name: string };
+    validate(item: any): { error: Error  };
 }
 
 export type DynogelsItemCallback = (err: Error, data: Item) => void;
