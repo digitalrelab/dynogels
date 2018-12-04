@@ -11,6 +11,7 @@
 export import AWS = require("aws-sdk");
 import * as joi from "joi";
 import stream = require("stream");
+import { Maybe } from '../../../src/types';
 
 // Dynogels Data Members
 export let log: Log;
@@ -31,7 +32,7 @@ export interface Log {
 // Dynogels global functions
 export function dynamoDriver(dynamoDB: AWS.DynamoDB): AWS.DynamoDB;
 export function reset(): void;
-export function define(modelName: string, config: ModelConfiguration): Model;
+export function define<TInput = Record<any, any>, TOutput extends TInput = TInput>(modelName: string, config: ModelConfiguration): Model<TInput, TOutput>;
 export function createTables(callback: (err: string) => void): void;
 export function createTables(options: { [key: string]: CreateTablesOptions } | DynogelsGlobalOptions, callback: (err: string) => void): void;
 export function Set(...args: any[]): any;
@@ -54,30 +55,30 @@ export interface CreateTablesOptions {
 export type LifeCycleAction = "create" | "update" | "destroy";
 
 // Dynogels Model
-export interface Model {
-    new(attrs: { [key: string]: any }): Item;
+export interface Model<TInput = Record<any, any>, TOutput extends TInput = TInput> {
+    new(attrs: TInput): Item<TOutput>;
 
-    get(hashKey: any, rangeKey: any, options: GetItemOptions, callback: DynogelsItemCallback): void;
-    get(haskKey: any, options: GetItemOptions, callback: DynogelsItemCallback): void;
-    get(hashKey: any, callback: DynogelsItemCallback): void;
-    get(hashKey: any, rangeKey: any, callback: DynogelsItemCallback): void;
-    create(item: any, options: CreateItemOptions, callback: DynogelsItemCallback): void;
-    create(item: any, callback: DynogelsItemCallback): void;
-    update(item: any, options: UpdateItemOptions, callback: DynogelsItemCallback): void;
-    update(item: any, callback: DynogelsItemCallback): void;
-    destroy(hashKey: any, rangeKey: any, options: DestroyItemOptions, callback: DynogelsItemCallback): void;
-    destroy(haskKey: any, options: DestroyItemOptions, callback: DynogelsItemCallback): void;
-    destroy(hashKey: any, callback: DynogelsItemCallback): void;
-    destroy(hashKey: any, rangeKey: any, callback: DynogelsItemCallback): void;
-    destroy(item: any, options: DestroyItemOptions, callback: DynogelsItemCallback): void;
-    destroy(item: any, callback: DynogelsItemCallback): void;
-    query(hashKey: any): Query;
-    scan(): Scan;
+    get(hashKey: any, rangeKey: any, options: GetItemOptions, callback: DynogelsItemCallback<TOutput>): void;
+    get(haskKey: any, options: GetItemOptions, callback: DynogelsItemCallback<TOutput>): void;
+    get(hashKey: any, callback: DynogelsItemCallback<TOutput>): void;
+    get(hashKey: any, rangeKey: any, callback: DynogelsItemCallback<TOutput>): void;
+    create(item: TInput, options: CreateItemOptions, callback: DynogelsItemCallback<TOutput>): void;
+    create(item: TInput, callback: DynogelsItemCallback<TOutput>): void;
+    update(item: Partial<TOutput>, options: UpdateItemOptions, callback: DynogelsItemCallback<TOutput>): void;
+    update(item: Partial<TOutput>, callback: DynogelsItemCallback<TOutput>): void;
+    destroy(hashKey: any, rangeKey: any, options: DestroyItemOptions, callback: DynogelsItemCallback<TOutput>): void;
+    destroy(haskKey: any, options: DestroyItemOptions, callback: DynogelsItemCallback<TOutput>): void;
+    destroy(hashKey: any, callback: DynogelsItemCallback<TOutput>): void;
+    destroy(hashKey: any, rangeKey: any, callback: DynogelsItemCallback<TOutput>): void;
+    destroy(item: Partial<TOutput>, options: DestroyItemOptions, callback: DynogelsItemCallback<TOutput>): void;
+    destroy(item: Partial<TOutput>, callback: DynogelsItemCallback<TOutput>): void;
+    query(hashKey: any): Query<TOutput>;
+    scan(): Scan<TOutput>;
     parallelScan(totalSegments: number): Scan;
-    getItems(items: string[] | Array<{ [key: string]: string }>, callback: (err: Error, items: any[]) => void): void;
-    getItems(items: string[] | Array<{ [key: string]: string }>, options: GetItemOptions, callback: (err: Error, items: any[]) => void): void;
-    batchGetItems(items: string[] | Array<{ [key: string]: string }>, callback: (err: Error, items: any[]) => void): void;
-    batchGetItems(items: string[] | Array<{ [key: string]: string }>, options: GetItemOptions, callback: (err: Error, items: any[]) => void): void;
+    getItems(items: string[] | Array<Record<keyof TOutput, string>>, callback: DynogelsItemArrayCallback<TOutput>): void;
+    getItems(items: string[] | Array<Record<keyof TOutput, string>>, options: GetItemOptions, callback:DynogelsItemArrayCallback<TOutput>): void;
+    batchGetItems(items: string[] | Array<Record<keyof TOutput, string>>, callback: DynogelsItemArrayCallback<TOutput>): void;
+    batchGetItems(items: string[] | Array<Record<keyof TOutput, string>>, options: GetItemOptions, callback: DynogelsItemArrayCallback<TOutput>): void;
     createTable(options: CreateTablesOptions, callback: (err: Error, data: AWS.DynamoDB.CreateTableOutput) => void): void;
     createTable(callback: (err: Error, data: AWS.DynamoDB.CreateTableOutput) => void): void;
     updateTable(throughput: Throughput, callback: (err: Error, data: AWS.DynamoDB.UpdateTableOutput) => void): void;
@@ -89,10 +90,11 @@ export interface Model {
     after(action: LifeCycleAction, listner: (item: Item) => void): void;
     before(action: LifeCycleAction, listner: (data: any, next: (err: Error | null, data: any) => void) => void): void;
     config(config: ModelConfig): { name: string };
-    validate(item: any): { error: Error, value: any };
+    validate(item: Item<TOutput>): { error: Error, value: any };
 }
 
-export type DynogelsItemCallback = (err: Error, data: Item) => void;
+export type DynogelsItemCallback<T = Record<any, any>> = (err: Error, data: Item<T>) => void;
+export type DynogelsItemArrayCallback<T = Record<any, any>> = (err: Error, data: Array<Item<T>>) => void;
 
 export interface Throughput {
     readCapacity: number;
@@ -154,17 +156,17 @@ export interface ModelConfig {
 }
 
 // Dynogels Item
-export interface Item {
-    get(): { [key: string]: any };
-    get(key: string): any;
-    set(params: {}): Item;
-    save(callback?: DynogelsItemCallback): void;
-    update(options: UpdateItemOptions, callback?: DynogelsItemCallback): void;
-    update(callback?: DynogelsItemCallback): void;
-    destroy(options: DestroyItemOptions, callback?: DynogelsItemCallback): void;
-    destroy(callback?: DynogelsItemCallback): void;
-    toJSON(): any;
-    toPlainObject(): any;
+export interface Item<T = Record<any, any>, K extends keyof T = keyof T> {
+    get(): Pick<T, K>;
+    get<TKey extends K>(key: TKey): T[TKey];
+    set(params: Partial<T>): Item<T>;
+    save(callback?: DynogelsItemCallback<T>): void;
+    update(options: UpdateItemOptions, callback?: DynogelsItemCallback<T>): void;
+    update(callback?: DynogelsItemCallback<T>): void;
+    destroy(options: DestroyItemOptions, callback?: DynogelsItemCallback<T>): void;
+    destroy(callback?: DynogelsItemCallback<T>): void;
+    toJSON(): Pick<T, K>;
+    toPlainObject(): Pick<T, K>;
 }
 
 export interface BaseChain<T> {
@@ -187,54 +189,59 @@ export interface ExtendedChain<T> extends BaseChain<T> {
     ne(value: any): T;
 }
 
-export type QueryWhereChain = BaseChain<Query>;
-export type QueryFilterChain = ExtendedChain<Query>;
+export type MaybeArray<T> = T | T[];
 
-// Dynogels Query
-export interface Query {
-    limit(number: number): Query;
-    filterExpression(expression: any): Query;
-    expressionAttributeNames(data: any): Query;
-    expressionAttributeValues(data: any): Query;
-    projectionExpression(data: any): Query;
-    usingIndex(name: string): Query;
-    consistentRead(read: boolean): Query;
-    addKeyCondition(condition: any): Query;
-    addFilterCondition(condition: any): Query;
-    startKey(hashKey: any, rangeKey: any): Query;
-    attributes(attrs: any): Query;
-    ascending(): Query;
-    descending(): Query;
-    select(value: any): Query;
-    returnConsumedCapacity(value: any): Query;
-    loadAll(): Query;
-    where(keyName: string): QueryWhereChain;
-    filter(keyName: string): QueryFilterChain;
-    exec(): stream.Readable;
-    exec(callback: (err: Error, data: any) => void): void;
+export interface QueryResponse<T = Record<any, any>, K extends keyof T = keyof T> {
+  Items: Array<Item<T, K>>,
+  Count: number,
+  ScannedCount: number,
 }
 
-export interface ScanWhereChain extends ExtendedChain<Scan> {
-    notNull(): Scan;
+// Dynogels Query
+export interface Query<T = Record<any, any>, K extends keyof T = keyof T> {
+    limit(number: number): Query<T, K>;
+    filterExpression(expression: any): Query<T, K>;
+    expressionAttributeNames(data: any): Query<T, K>;
+    expressionAttributeValues(data: any): Query<T, K>;
+    projectionExpression(data: any): Query<T, K>;
+    usingIndex(name: string): Query<T, K>;
+    consistentRead(read: boolean): Query<T, K>;
+    addKeyCondition(condition: any): Query<T, K>;
+    addFilterCondition(condition: any): Query<T, K>;
+    startKey(hashKey: any, rangeKey: any): Query<T, K>;
+    attributes<TKeys extends keyof T>(attrs: MaybeArray<TKeys>): Query<T, TKeys>;
+    ascending(): Query<T, K>;
+    descending(): Query<T, K>;
+    select(value: any): Query<T, K>;
+    returnConsumedCapacity(value: any): Query<T, K>;
+    loadAll(): Query<T, K>;
+    where(keyName: string): BaseChain<Query<T, K>>;
+    filter(keyName: string): ExtendedChain<Query<T, K>>;
+    exec(): stream.Readable;
+    exec(callback: (err: Error, data: QueryResponse<T, K>) => void): void;
+}
+
+export interface ScanWhereChain<T, K extends keyof T> extends ExtendedChain<Scan<T, K>> {
+    notNull(): Scan<T, K>;
 }
 
 // Dynogels Scan
-export interface Scan {
-    limit(number: number): Scan;
-    addFilterCondition(condition: any): Scan;
-    startKey(hashKey: any, rangeKey?: any): Scan;
-    attributes(attrs: any): Scan;
-    select(value: any): Scan;
-    returnConsumedCapacity(): Scan;
-    segments(segment: any, totalSegments: number): Scan;
-    where(keyName: string): ScanWhereChain;
-    filterExpression(expression: any): Scan;
-    expressionAttributeNames(data: any): Scan;
-    expressionAttributeValues(data: any): Scan;
-    projectionExpression(data: any): Scan;
+export interface Scan<T = Record<any, any>, K extends keyof T = keyof T> {
+    limit(number: number): Scan<T, K>;
+    addFilterCondition(condition: any): Scan<T, K>;
+    startKey(hashKey: any, rangeKey?: any): Scan<T, K>;
+    attributes<TKeys extends keyof T>(attrs: MaybeArray<TKeys>): Scan<T, TKeys>;
+    select(value: any): Scan<T, K>;
+    returnConsumedCapacity(): Scan<T, K>;
+    segments(segment: any, totalSegments: number): Scan<T, K>;
+    where(keyName: string): ScanWhereChain<T, K>;
+    filterExpression(expression: any): Scan<T, K>;
+    expressionAttributeNames(data: any): Scan<T, K>;
+    expressionAttributeValues(data: any): Scan<T, K>;
+    projectionExpression(data: any): Scan<T, K>;
     exec(): stream.Readable;
-    exec(callback: (err: Error, data: any) => void): void;
-    loadAll(): Scan;
+    exec(callback: (err: Error, data: QueryResponse<T, K>) => void): void;
+    loadAll(): Scan<T, K>;
 }
 
 export type tableResolve = () => string;
