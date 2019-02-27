@@ -13,7 +13,7 @@
     "ci": "make coverage",
     "coveralls": "cat coverage/lcov.info | coveralls"
   },
-  "repository": "git://github.com/clarkie/dynogels.git",
+  "repository": "git://github.com/digitalrelab/dynogels.git",
   "keywords": [
     "datamapper",
     "DynamoDB",
