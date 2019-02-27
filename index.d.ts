@@ -11,7 +11,6 @@
 export import AWS = require("aws-sdk");
 import * as joi from "joi";
 import stream = require("stream");
-import { Maybe } from '../../../src/types';
 
 // Dynogels Data Members
 export let log: Log;
