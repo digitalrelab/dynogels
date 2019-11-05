@@ -194,6 +194,7 @@ export interface QueryResponse<T = Record<any, any>, K extends keyof T = keyof T
   Items: Array<Item<T, K>>,
   Count: number,
   ScannedCount: number,
+  LastEvaluatedKey?: Partial<T> | string | number,
 }
 
 // Dynogels Query
